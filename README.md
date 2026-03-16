@@ -4,4 +4,6 @@
 
 #### Searches for intelligence folders and provides last line of defense workflow modification and deletion for total agent control.
 
-Delete the appropriate file to activate the emergency measure.
+1. Delete the
+
+2. Delete the appropriate file to activate the emergency measure.
