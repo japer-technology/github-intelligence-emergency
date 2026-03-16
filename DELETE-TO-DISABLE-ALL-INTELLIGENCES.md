@@ -1,3 +1,5 @@
-# As soon as this file disappears a workflow will trigger
+# WARNING!
 
-All repo in the account with ".github-*-intelligence" folders have all related workflows renamed to .github/workflows-DISABLED/*
+#### As soon as this file is renamed or deleted a fail-safe workflow will trigger
+
+All repo in the account with ".github-\*-intelligence" folders have all related workflows renamed to .github/workflows-DISABLED/*
