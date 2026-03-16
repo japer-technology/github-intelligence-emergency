@@ -67,7 +67,7 @@ extract_workflow_version() {
 
   # Look for version pattern in comments: "# version: X.Y.Z"
   local version
-  version=$(echo "${content}" | grep -i -m1 '^#\s*version\s*[:=]' | sed 's/^#\s*[Vv]ersion\s*[:=]\s*//; s/\s*$//')
+  version=$(echo "${content}" | grep -i -m1 '^#\s*version\s*[:=]' | sed -E 's/^#\s*[Vv][Ee][Rr][Ss][Ii][Oo][Nn]\s*[:=]\s*//; s/\s*$//')
   [ -z "${version}" ] && version="unknown"
   echo "${version}"
 }
