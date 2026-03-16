@@ -1,13 +1,13 @@
-# Dry-Run Report – Manual-Only Workflow
+# Dry-Run – Manual-Only Workflow
 #
 # Can ONLY be triggered manually via workflow_dispatch.
 # Always forces DRY_RUN=true – this workflow will never perform live
 # operations regardless of whether DELETE-TO-ACTIVATE.md exists.
 #
-# Produces a log file in run-test-log/ describing what would have
+# Produces a log file in dry-run-log/ describing what would have
 # happened if the selected operation were executed live.
 
-name: 🔍 Dry-Run Report
+name: 🔍 Dry-Run
 
 on:
   workflow_dispatch:
@@ -24,7 +24,7 @@ permissions:
   contents: write
 
 jobs:
-  dry-run-report:
+  dry-run:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -43,10 +43,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add run-test-log/ || true
+          git add dry-run-log/ || true
           if git diff --cached --quiet; then
             echo "No report to commit."
           else
-            git commit -m "🔍 Dry-run report: ${{ inputs.operation }}"
+            git commit -m "🔍 Dry-run: ${{ inputs.operation }}"
             git push
           fi

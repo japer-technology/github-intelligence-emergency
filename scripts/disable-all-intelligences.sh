@@ -19,14 +19,15 @@ set -euo pipefail
 API="https://api.github.com"
 AUTH_HEADER="Authorization: token ${GITHUB_TOKEN}"
 ACCEPT_HEADER="Accept: application/vnd.github+json"
-LOG_DIR="${GITHUB_WORKSPACE:-$(pwd)}/run-test-log"
+LOG_DIR="${GITHUB_WORKSPACE:-$(pwd)}/dry-run-log"
 
 log() { echo "[$(date -u '+%Y-%m-%dT%H:%M:%SZ')] $*"; }
 
-# ── Collect all repos visible to the token for the owner ─────────────
+# ── Collect all repos visible to the token for the owner (sorted by name) ──
 fetch_repos() {
   local page=1
   local per_page=100
+  local all_repos=""
   while :; do
     local response
     response=$(curl -sf -H "${AUTH_HEADER}" -H "${ACCEPT_HEADER}" \
@@ -38,18 +39,37 @@ fetch_repos() {
     local names
     names=$(echo "${response}" | jq -r '.[].name // empty')
     [ -z "${names}" ] && break
-    echo "${names}"
+    all_repos+="${names}"$'\n'
     page=$((page + 1))
   done
+  echo "${all_repos}" | sed '/^$/d' | sort
 }
 
-# ── Check whether a repo contains at least one .github-*-intelligence dir ──
-has_intelligence_folder() {
+# ── Check whether a repo contains .github-*-intelligence dirs and return them ──
+get_intelligence_folders() {
   local repo=$1
   local contents
   contents=$(curl -sf -H "${AUTH_HEADER}" -H "${ACCEPT_HEADER}" \
     "${API}/repos/${OWNER}/${repo}/contents/" 2>/dev/null) || return 1
-  echo "${contents}" | jq -e '[.[] | select(.type=="dir" and (.name | test("^\\.github-.*-intelligence$")))] | length > 0' >/dev/null 2>&1
+  echo "${contents}" | jq -r '.[] | select(.type=="dir" and (.name | test("^\\.github-.*-intelligence$"))) | .name'
+}
+
+# ── Extract version from a workflow file ─────────────────────────────
+extract_workflow_version() {
+  local repo=$1 file=$2
+  local file_path=".github/workflows/${file}"
+  local file_meta
+  file_meta=$(curl -sf -H "${AUTH_HEADER}" -H "${ACCEPT_HEADER}" \
+    "${API}/repos/${OWNER}/${repo}/contents/${file_path}" 2>/dev/null) || { echo "unknown"; return; }
+
+  local content
+  content=$(echo "${file_meta}" | jq -r '.content // empty' | base64 -d 2>/dev/null) || { echo "unknown"; return; }
+
+  # Look for version pattern in comments: "# version: X.Y.Z"
+  local version
+  version=$(echo "${content}" | grep -i -m1 '^#\s*version\s*[:=]' | sed 's/^#\s*[Vv]ersion\s*[:=]\s*//; s/\s*$//')
+  [ -z "${version}" ] && version="unknown"
+  echo "${version}"
 }
 
 # ── Disable workflows for a single repo ──────────────────────────────
@@ -73,6 +93,10 @@ disable_repo_workflows() {
     [ -z "${file}" ] && continue
     local src_path=".github/workflows/${file}"
     local dst_path=".github/workflows-DISABLED/${file}"
+
+    local version
+    version=$(extract_workflow_version "${repo}" "${file}")
+    log "  Workflow: ${file} (version: ${version})"
 
     if [ "${DRY_RUN}" = "true" ]; then
       log "  [DRY RUN] Would move ${src_path} → ${dst_path}"
@@ -129,11 +153,35 @@ main() {
 
   while IFS= read -r repo; do
     [ -z "${repo}" ] && continue
-    if has_intelligence_folder "${repo}"; then
-      found=$((found + 1))
-      receipt+="REPO: ${OWNER}/${repo}"$'\n'
-      disable_repo_workflows "${repo}"
+
+    local intel_folders
+    intel_folders=$(get_intelligence_folders "${repo}") || continue
+    [ -z "${intel_folders}" ] && continue
+
+    found=$((found + 1))
+    receipt+="REPO: ${OWNER}/${repo}"$'\n'
+
+    # Include intelligence folders in receipt
+    while IFS= read -r f; do
+      [ -n "${f}" ] && receipt+="  FOLDER: ${f}"$'\n'
+    done <<< "${intel_folders}"
+
+    # Include workflow versions in receipt
+    local workflows
+    workflows=$(curl -sf -H "${AUTH_HEADER}" -H "${ACCEPT_HEADER}" \
+      "${API}/repos/${OWNER}/${repo}/contents/.github/workflows" 2>/dev/null) || true
+    if [ -n "${workflows}" ]; then
+      local wf_files
+      wf_files=$(echo "${workflows}" | jq -r '.[] | select(.type=="file" and (.name | test("\\.(yml|yaml)$"))) | .name' 2>/dev/null)
+      while IFS= read -r wf; do
+        [ -z "${wf}" ] && continue
+        local ver
+        ver=$(extract_workflow_version "${repo}" "${wf}")
+        receipt+="  WORKFLOW: ${wf} (version: ${ver})"$'\n'
+      done <<< "${wf_files}"
     fi
+
+    disable_repo_workflows "${repo}"
   done <<< "${repos}"
 
   log ""
