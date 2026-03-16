@@ -1,13 +1,13 @@
 # 🆘 github-intelligence-emergency
 
-## Providing account wide intelligent repo emergency control
+## Providing account-wide intelligence repo emergency control
 
-Searches for intelligence folders and provides last line of defense workflow modification and deletion for total agent control.
+Searches for `.github-*-intelligence` folders across all repositories and provides last-line-of-defence workflow modification and deletion for total agent control.
 
-## INSTRUCTIONS
+## Instructions
 
 0. Create a repository secret named `INTELLIGENCE_EMERGENCY_TOKEN` containing a Personal Access Token (PAT) with `repo` scope across the organisation. This is required for cross-repository operations.
 
-1. Delete the DELETE-TO-ACTIVATE.md file. This disables fail-safes for deleting files within all account repositories.
+1. Delete `DELETE-TO-ACTIVATE.md` to remove the final fail-safe. While present, all operations run in dry-run mode only.
 
-2. Delete the appropriate file to activate the emergency measure.
+2. Delete the appropriate trigger file to activate the emergency measure.
