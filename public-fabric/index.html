@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🆘 github-intelligence-emergency — Public Fabric</title>
+    <meta
+      name="description"
+      content="Account-wide emergency control for GitHub Intelligence repositories. Disable or kill all intelligence workflows across an organisation with a single file deletion."
+    />
+    <meta name="theme-color" content="#08111f" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="github-intelligence-emergency — Public Fabric" />
+    <meta
+      property="og:description"
+      content="Account-wide emergency control for GitHub Intelligence repositories."
+    />
+
+    <!-- Favicon -->
+    <link rel="icon" href="https://github.com/japer-technology.png" type="image/png" />
+
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #08111f;
+        --panel: rgba(12, 24, 43, 0.88);
+        --panel-strong: rgba(16, 35, 63, 0.95);
+        --border: rgba(150, 187, 255, 0.18);
+        --border-strong: rgba(150, 187, 255, 0.32);
+        --text: #ebf2ff;
+        --muted: #9db3d4;
+        --accent: #8dc2ff;
+        --success: #66d19e;
+        --success-soft: rgba(102, 209, 158, 0.14);
+        --warning: #ffd26a;
+        --warning-soft: rgba(255, 210, 106, 0.14);
+        --danger: #ff9d9d;
+        --danger-soft: rgba(255, 157, 157, 0.14);
+        --featured: #d5b7ff;
+        --shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
+      }
+
+      * { box-sizing: border-box; }
+
+      .skip-link {
+        position: absolute;
+        top: -100%;
+        left: 1rem;
+        z-index: 100;
+        padding: 0.6rem 1rem;
+        border-radius: 0 0 12px 12px;
+        background: var(--accent);
+        color: #04101d;
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .skip-link:focus { top: 0; }
+
+      ::selection {
+        background: rgba(141, 194, 255, 0.3);
+        color: var(--text);
+      }
+
+      html { scroll-behavior: smooth; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        line-height: 1.5;
+        background:
+          radial-gradient(circle at top, rgba(78, 159, 255, 0.22), transparent 30%),
+          linear-gradient(180deg, #09101d 0%, #08111f 100%);
+        color: var(--text);
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        background-size: 24px 24px;
+        mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.75), transparent 92%);
+      }
+
+      /* Shell */
+      .shell {
+        width: calc(100% - 3rem);
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 2rem 0 3rem;
+      }
+
+      .hero, .panel, .footer { position: relative; z-index: 1; }
+
+      /* Hero */
+      .hero {
+        padding: 3rem;
+        border: 1px solid var(--border);
+        border-radius: 30px;
+        background: linear-gradient(180deg, rgba(16, 35, 63, 0.96), rgba(10, 20, 37, 0.96));
+        box-shadow: var(--shadow);
+      }
+
+      .hero-topline {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 0.75rem;
+        align-items: center;
+      }
+
+      .eyebrow {
+        margin: 0;
+        font-size: 0.85rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      .live-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-height: 2rem;
+        padding: 0.35rem 0.8rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 157, 157, 0.28);
+        font-size: 0.85rem;
+        font-weight: 700;
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+
+      .live-pill::before {
+        content: "";
+        width: 0.55rem;
+        height: 0.55rem;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      h1, h2, h3, p, dl { margin-top: 0; }
+
+      h1 {
+        margin: 1rem 0;
+        font-size: clamp(2.35rem, 4vw, 4.25rem);
+        line-height: 1.02;
+        letter-spacing: -0.03em;
+      }
+
+      h2 {
+        font-size: clamp(1.55rem, 2.3vw, 2rem);
+        margin-bottom: 0.6rem;
+      }
+
+      h3 { font-size: 1.15rem; margin-bottom: 0.5rem; }
+
+      .hero-copy {
+        color: var(--muted);
+        font-size: 1.08rem;
+        max-width: 70ch;
+      }
+
+      /* Hero actions */
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.9rem;
+        margin: 1.75rem 0 2rem;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.8rem;
+        padding: 0.72rem 1.1rem;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        text-decoration: none;
+        font-weight: 700;
+        font: inherit;
+        cursor: pointer;
+        transition: transform 160ms ease, border-color 160ms ease,
+          background 160ms ease, box-shadow 160ms ease;
+      }
+
+      .button:hover,
+      .button:focus-visible {
+        transform: translateY(-1px);
+        border-color: var(--border-strong);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+      }
+
+      .button.primary {
+        color: #04101d;
+        background: linear-gradient(135deg, var(--accent), #d2e9ff);
+      }
+
+      .button.secondary {
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      /* Stats */
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1rem;
+      }
+
+      .stat-card {
+        margin: 0;
+        padding: 1rem 1.1rem;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .stat-card dt {
+        margin-bottom: 0.35rem;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      .stat-card dd {
+        margin: 0;
+        font-size: 1.4rem;
+        font-weight: 800;
+      }
+
+      /* Panels */
+      .panel {
+        margin-top: 1.5rem;
+        padding: 1.75rem;
+        border-radius: 24px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+
+      .section-heading { margin-bottom: 1.25rem; }
+      .section-heading p { color: var(--muted); margin-bottom: 0; }
+
+      /* Protocol cards */
+      .protocol-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 1rem;
+      }
+
+      .protocol-card {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 1.25rem;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, rgba(16, 35, 63, 0.88), rgba(8, 17, 31, 0.94));
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+      }
+
+      .protocol-card:hover {
+        transform: translateY(-3px);
+        border-color: var(--border-strong);
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
+      }
+
+      .protocol-card.warning-card {
+        border-color: rgba(255, 210, 106, 0.32);
+      }
+
+      .protocol-card.danger-card {
+        border-color: rgba(255, 157, 157, 0.32);
+      }
+
+      .protocol-card.safe-card {
+        border-color: rgba(102, 209, 158, 0.25);
+      }
+
+      .protocol-card h3 { margin: 0; font-size: 1.12rem; }
+      .protocol-card p { color: var(--muted); margin-bottom: 0; line-height: 1.58; }
+
+      /* Badges */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 1.9rem;
+        padding: 0.22rem 0.58rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+
+      .badge-reversible {
+        color: #2f2100;
+        background: var(--warning);
+      }
+
+      .badge-destructive {
+        color: #301414;
+        background: var(--danger);
+      }
+
+      .badge-safe {
+        color: #071913;
+        background: var(--success);
+      }
+
+      .badge-info {
+        color: var(--text);
+        background: rgba(141, 194, 255, 0.15);
+        border: 1px solid rgba(141, 194, 255, 0.2);
+      }
+
+      /* Callout */
+      .callout {
+        padding: 1rem 1.1rem;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 157, 157, 0.25);
+        background: rgba(255, 157, 157, 0.06);
+      }
+
+      .callout.callout-success {
+        border-color: rgba(102, 209, 158, 0.25);
+        background: rgba(102, 209, 158, 0.08);
+      }
+
+      .callout strong {
+        display: block;
+        margin-bottom: 0.5rem;
+      }
+
+      .callout p { color: var(--muted); margin-bottom: 0; }
+
+      /* Steps list */
+      .steps {
+        counter-reset: step;
+        list-style: none;
+        padding: 0;
+        margin: 0.5rem 0 0;
+      }
+
+      .steps li {
+        counter-increment: step;
+        position: relative;
+        padding-left: 2.2rem;
+        margin-bottom: 0.65rem;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .steps li::before {
+        content: counter(step);
+        position: absolute;
+        left: 0;
+        top: 0.05rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.6rem;
+        height: 1.6rem;
+        border-radius: 50%;
+        background: rgba(141, 194, 255, 0.12);
+        border: 1px solid rgba(141, 194, 255, 0.2);
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--accent);
+      }
+
+      /* File tree */
+      .file-tree {
+        padding: 1.25rem 1.5rem;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: rgba(5, 11, 20, 0.9);
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+        font-size: 0.88rem;
+        line-height: 1.8;
+        overflow-x: auto;
+        color: var(--muted);
+      }
+
+      .file-tree .dir { color: var(--accent); }
+      .file-tree .trigger { color: var(--danger); }
+      .file-tree .script { color: var(--success); }
+      .file-tree .workflow { color: var(--featured); }
+      .file-tree .muted { color: rgba(157, 179, 212, 0.55); }
+
+      /* Intro layout */
+      .intro-panel {
+        display: grid;
+        grid-template-columns: 1.45fr 1fr;
+        gap: 1.25rem;
+      }
+
+      .intro-copy-block {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        justify-content: space-between;
+      }
+
+      .intro-copy-block p { color: var(--muted); }
+
+      /* Snapshot grid */
+      .snapshot-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1rem;
+      }
+
+      .snapshot-card {
+        padding: 1rem 1.1rem;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, rgba(16, 35, 63, 0.86), rgba(8, 17, 31, 0.92));
+      }
+
+      .snapshot-value {
+        margin: 0 0 0.35rem;
+        font-size: clamp(1.7rem, 3vw, 2.5rem);
+        font-weight: 800;
+      }
+
+      .snapshot-copy {
+        margin-bottom: 0;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      /* Workflow cards */
+      .workflow-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1rem;
+      }
+
+      .workflow-card {
+        padding: 1.25rem;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, rgba(16, 35, 63, 0.88), rgba(8, 17, 31, 0.94));
+        transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+      }
+
+      .workflow-card:hover {
+        transform: translateY(-3px);
+        border-color: var(--border-strong);
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
+      }
+
+      .workflow-card h3 { margin-bottom: 0.5rem; font-size: 1.05rem; }
+      .workflow-card p { color: var(--muted); margin-bottom: 0.5rem; line-height: 1.55; }
+
+      .workflow-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+      }
+
+      code {
+        padding: 0.15rem 0.35rem;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.06);
+        font-size: 0.88em;
+      }
+
+      /* Footer */
+      .footer {
+        margin-top: 1.5rem;
+        text-align: center;
+        font-size: 0.95rem;
+        color: var(--muted);
+      }
+
+      .footer .copyright {
+        margin-top: 0.5rem;
+        font-size: 0.82rem;
+        opacity: 0.6;
+      }
+
+      /* Reduced motion */
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+
+      /* Medium screens */
+      @media (max-width: 1120px) {
+        .snapshot-grid, .stats {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .intro-panel {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Small screens */
+      @media (max-width: 720px) {
+        .shell {
+          width: calc(100% - 1rem);
+          padding-top: 1rem;
+        }
+        .hero, .panel {
+          padding: 1.2rem;
+          border-radius: 20px;
+        }
+        .snapshot-grid, .stats {
+          grid-template-columns: 1fr;
+        }
+        .protocol-grid, .workflow-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#protocols">Skip to protocols</a>
+    <div class="shell">
+
+      <!-- ─── Hero ─────────────────────────────────────────────── -->
+      <header class="hero">
+        <div class="hero-topline">
+          <p class="eyebrow">Public Fabric</p>
+          <span class="live-pill">Emergency Control</span>
+        </div>
+
+        <h1>🆘 github-intelligence-emergency</h1>
+        <p class="hero-copy">
+          Account-wide intelligence repo emergency control. Searches for
+          <code>.github-*-intelligence</code> folders across all repositories and provides
+          last-line-of-defence workflow modification and deletion for total agent control.
+        </p>
+
+        <div class="hero-actions">
+          <a
+            class="button primary"
+            href="https://github.com/japer-technology/github-intelligence-emergency"
+            target="_blank"
+            rel="noreferrer"
+          >
+            View repository
+          </a>
+          <a class="button secondary" href="#protocols">
+            Browse protocols
+          </a>
+        </div>
+
+        <dl class="stats">
+          <div class="stat-card">
+            <dt>Protocols</dt>
+            <dd>2</dd>
+          </div>
+          <div class="stat-card">
+            <dt>Trigger files</dt>
+            <dd>3</dd>
+          </div>
+          <div class="stat-card">
+            <dt>Workflows</dt>
+            <dd>3</dd>
+          </div>
+          <div class="stat-card">
+            <dt>Scripts</dt>
+            <dd>2</dd>
+          </div>
+        </dl>
+      </header>
+
+      <main>
+
+        <!-- ─── Intro ──────────────────────────────────────────── -->
+        <section class="panel intro-panel">
+          <div class="intro-copy-block">
+            <div>
+              <h2>What this repo is for</h2>
+              <p>
+                This repository acts as a <strong>kill switch</strong> for all GitHub Intelligence
+                agents running across a GitHub organisation. If an AI agent misbehaves, or you
+                simply need to stop every intelligence workflow at once, deleting a single file
+                in this repo triggers an automated emergency response.
+              </p>
+              <p>
+                Two protocols are available&nbsp;&mdash; a <strong>reversible disable</strong> that
+                moves workflows aside, and an <strong>irreversible kill</strong> that permanently
+                deletes workflows and intelligence folders.
+              </p>
+            </div>
+          </div>
+          <aside class="callout">
+            <strong>⚠️ Destructive operations</strong>
+            <p>
+              The Kill protocol permanently deletes workflows and intelligence folders from every
+              affected repository. It cannot be undone. Always use the Disable protocol first
+              unless you are certain you want permanent removal.
+            </p>
+          </aside>
+        </section>
+
+        <!-- ─── Snapshot metrics ───────────────────────────────── -->
+        <section class="panel">
+          <div class="section-heading">
+            <h2>At a glance</h2>
+            <p>Key signals about the emergency control surface.</p>
+          </div>
+
+          <div class="snapshot-grid">
+            <article class="snapshot-card">
+              <h3>Fail-safe</h3>
+              <p class="snapshot-value">Active</p>
+              <p class="snapshot-copy">
+                While <code>DELETE-TO-ACTIVATE.md</code> exists, all operations run in
+                dry-run mode only.
+              </p>
+            </article>
+            <article class="snapshot-card">
+              <h3>Scope</h3>
+              <p class="snapshot-value">Org-wide</p>
+              <p class="snapshot-copy">
+                Scans every repository visible to the token for
+                <code>.github-*-intelligence</code> folders.
+              </p>
+            </article>
+            <article class="snapshot-card">
+              <h3>Token scope</h3>
+              <p class="snapshot-value"><code>repo</code></p>
+              <p class="snapshot-copy">
+                Requires a PAT with <code>repo</code> scope stored as
+                <code>INTELLIGENCE_EMERGENCY_TOKEN</code>.
+              </p>
+            </article>
+            <article class="snapshot-card">
+              <h3>Dry-run logs</h3>
+              <p class="snapshot-value">Committed</p>
+              <p class="snapshot-copy">
+                Every dry-run produces a timestamped receipt in <code>dry-run-log/</code>.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <!-- ─── Protocols ──────────────────────────────────────── -->
+        <section class="panel" id="protocols">
+          <div class="section-heading">
+            <h2>Emergency protocols</h2>
+            <p>Two levels of emergency response, plus a fail-safe that guards them both.</p>
+          </div>
+
+          <div class="protocol-grid">
+            <!-- Disable -->
+            <article class="protocol-card warning-card">
+              <div>
+                <span class="badge badge-reversible">Reversible</span>
+              </div>
+              <h3>🔒 Disable All Intelligences</h3>
+              <p>
+                Moves all <code>.github/workflows/*.yml</code> files to
+                <code>.github/workflows-DISABLED/</code> in every repo that contains a
+                <code>.github-*-intelligence</code> folder. Workflows stop executing but
+                the files remain intact and can be moved back.
+              </p>
+              <p>
+                <strong>Trigger:</strong> Delete
+                <code>DELETE-TO-DISABLE-ALL-INTELLIGENCES.md</code>
+              </p>
+              <ol class="steps">
+                <li>Workflow detects the trigger file was deleted (verified via <code>git diff --diff-filter=D</code>).</li>
+                <li>Checks if the fail-safe <code>DELETE-TO-ACTIVATE.md</code> still exists.</li>
+                <li>Enumerates every repository visible to the token.</li>
+                <li>For each repo with <code>.github-*-intelligence</code> folders, moves workflows to <code>workflows-DISABLED/</code>.</li>
+              </ol>
+            </article>
+
+            <!-- Kill -->
+            <article class="protocol-card danger-card">
+              <div>
+                <span class="badge badge-destructive">Destructive &amp; Irreversible</span>
+              </div>
+              <h3>☠️ Kill All Intelligences</h3>
+              <p>
+                Permanently deletes all <code>.github/workflows/*.yml</code> files
+                <strong>and</strong> recursively removes every
+                <code>.github-*-intelligence</code> folder from affected repos. This action
+                cannot be undone.
+              </p>
+              <p>
+                <strong>Trigger:</strong> Delete
+                <code>DELETE-TO-KILL-ALL-INTELLIGENCES.md</code>
+              </p>
+              <ol class="steps">
+                <li>Workflow detects the trigger file was deleted (verified via <code>git diff --diff-filter=D</code>).</li>
+                <li>Checks if the fail-safe <code>DELETE-TO-ACTIVATE.md</code> still exists.</li>
+                <li>Enumerates every repository visible to the token.</li>
+                <li>Deletes all workflow YAML files from <code>.github/workflows/</code>.</li>
+                <li>Recursively deletes every <code>.github-*-intelligence</code> folder.</li>
+              </ol>
+            </article>
+
+            <!-- Fail-safe -->
+            <article class="protocol-card safe-card">
+              <div>
+                <span class="badge badge-safe">Safety Guard</span>
+              </div>
+              <h3>🛡️ Fail-safe: DELETE-TO-ACTIVATE.md</h3>
+              <p>
+                While this file exists, <strong>both protocols are forced into dry-run mode</strong>.
+                No live changes will be made to any repository regardless of which trigger file is
+                deleted.
+              </p>
+              <p>
+                Delete <code>DELETE-TO-ACTIVATE.md</code> <strong>first</strong> to enable live
+                execution. Scripts default <code>DRY_RUN</code> to <code>true</code> if the
+                environment variable is unset.
+              </p>
+            </article>
+
+            <!-- Dry-Run -->
+            <article class="protocol-card">
+              <div>
+                <span class="badge badge-info">Manual</span>
+              </div>
+              <h3>🔍 Manual Dry-Run</h3>
+              <p>
+                Simulate either protocol at any time without deleting any trigger files. Uses
+                <code>workflow_dispatch</code> so it can only be triggered via the Actions UI.
+              </p>
+              <p>
+                Navigate to <strong>Actions → 🔍 Dry-Run → Run workflow</strong>, choose
+                <code>disable-all-intelligences</code> or <code>kill-all-intelligences</code>,
+                and a receipt is committed to <code>dry-run-log/</code>.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <!-- ─── How to use ─────────────────────────────────────── -->
+        <section class="panel" id="instructions">
+          <div class="section-heading">
+            <h2>How to use</h2>
+            <p>Three steps to activate the emergency system.</p>
+          </div>
+
+          <div class="intro-panel" style="gap: 2rem;">
+            <div>
+              <ol class="steps">
+                <li>
+                  Create a repository secret named <code>INTELLIGENCE_EMERGENCY_TOKEN</code>
+                  containing a Personal Access Token (PAT) with <code>repo</code> scope
+                  across the organisation.
+                </li>
+                <li>
+                  Delete <code>DELETE-TO-ACTIVATE.md</code> to remove the final fail-safe.
+                  While present, all operations run in dry-run mode only.
+                </li>
+                <li>
+                  Delete the appropriate trigger file to activate the emergency measure:
+                  <br />
+                  <code>DELETE-TO-DISABLE-ALL-INTELLIGENCES.md</code> for disable, or
+                  <br />
+                  <code>DELETE-TO-KILL-ALL-INTELLIGENCES.md</code> for kill.
+                </li>
+              </ol>
+            </div>
+            <aside class="callout callout-success">
+              <strong>💡 Tip: Test with a dry-run first</strong>
+              <p>
+                Use the manual dry-run workflow to preview exactly which repositories and
+                workflows would be affected before removing the fail-safe. Receipts are
+                committed to <code>dry-run-log/</code> for review.
+              </p>
+            </aside>
+          </div>
+        </section>
+
+        <!-- ─── Workflows ──────────────────────────────────────── -->
+        <section class="panel" id="workflows">
+          <div class="section-heading">
+            <h2>Workflows</h2>
+            <p>GitHub Actions workflows that power the emergency protocols.</p>
+          </div>
+
+          <div class="workflow-grid">
+            <article class="workflow-card">
+              <h3>🆘 Disable All Intelligences</h3>
+              <p>
+                Triggered on push when
+                <code>DELETE-TO-DISABLE-ALL-INTELLIGENCES.md</code> is modified.
+                Verifies the file was actually deleted, checks the fail-safe, then runs
+                <code>scripts/disable-all-intelligences.sh</code>.
+              </p>
+              <div class="workflow-meta">
+                <span class="badge badge-info">push trigger</span>
+                <span class="badge badge-info">contents: write</span>
+              </div>
+            </article>
+
+            <article class="workflow-card">
+              <h3>🆘 Kill All Intelligences</h3>
+              <p>
+                Triggered on push when
+                <code>DELETE-TO-KILL-ALL-INTELLIGENCES.md</code> is modified.
+                Verifies the file was actually deleted, checks the fail-safe, then runs
+                <code>scripts/kill-all-intelligences.sh</code>.
+              </p>
+              <div class="workflow-meta">
+                <span class="badge badge-info">push trigger</span>
+                <span class="badge badge-info">contents: write</span>
+              </div>
+            </article>
+
+            <article class="workflow-card">
+              <h3>🔍 Dry-Run</h3>
+              <p>
+                Manual-only workflow via <code>workflow_dispatch</code>. Always forces
+                <code>DRY_RUN=true</code> regardless of fail-safe status. Choose between
+                simulating disable or kill.
+              </p>
+              <div class="workflow-meta">
+                <span class="badge badge-info">workflow_dispatch</span>
+                <span class="badge badge-safe">always dry-run</span>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ─── Scripts ────────────────────────────────────────── -->
+        <section class="panel" id="scripts">
+          <div class="section-heading">
+            <h2>Scripts</h2>
+            <p>Bash scripts that implement the emergency logic.</p>
+          </div>
+
+          <div class="workflow-grid">
+            <article class="workflow-card">
+              <h3>disable-all-intelligences.sh</h3>
+              <p>
+                Enumerates all repos for the owner, finds those with
+                <code>.github-*-intelligence</code> folders, and moves their workflow files
+                to <code>.github/workflows-DISABLED/</code>. Extracts workflow version
+                comments for the dry-run receipt.
+              </p>
+              <div class="workflow-meta">
+                <span class="badge badge-info">GITHUB_TOKEN</span>
+                <span class="badge badge-info">OWNER</span>
+                <span class="badge badge-info">DRY_RUN</span>
+              </div>
+            </article>
+
+            <article class="workflow-card">
+              <h3>kill-all-intelligences.sh</h3>
+              <p>
+                Enumerates all repos, deletes workflow YAML files, then recursively
+                deletes every <code>.github-*-intelligence</code> folder via the GitHub
+                Contents API. Includes version extraction for receipts.
+              </p>
+              <div class="workflow-meta">
+                <span class="badge badge-info">GITHUB_TOKEN</span>
+                <span class="badge badge-info">OWNER</span>
+                <span class="badge badge-info">DRY_RUN</span>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ─── File tree ──────────────────────────────────────── -->
+        <section class="panel" id="structure">
+          <div class="section-heading">
+            <h2>Repository structure</h2>
+            <p>Complete file tree of the emergency control repo.</p>
+          </div>
+
+          <div class="file-tree" id="file-tree" role="figure" aria-label="Repository file tree"></div>
+        </section>
+      </main>
+
+      <!-- ─── Footer ──────────────────────────────────────────── -->
+      <footer class="footer">
+        <p>
+          Built from <code>public-fabric/</code> in the
+          <a
+            href="https://github.com/japer-technology/github-intelligence-emergency"
+            target="_blank"
+            rel="noreferrer"
+            style="color: var(--accent); text-decoration: none;"
+          >github-intelligence-emergency</a> repository.
+        </p>
+        <p class="copyright">&copy; 2026 Japer Technology</p>
+      </footer>
+    </div>
+
+    <script>
+      (function () {
+        "use strict";
+
+        /* ── File tree data ──────────────────────────────────── */
+        var tree = [
+          { depth: 0, icon: "📁", name: ".github/", cls: "dir" },
+          { depth: 1, icon: "📁", name: "workflows/", cls: "dir" },
+          { depth: 2, icon: "📄", name: "disable-all-intelligences.yml", cls: "workflow" },
+          { depth: 2, icon: "📄", name: "dry-run.yml", cls: "workflow" },
+          { depth: 2, icon: "📄", name: "kill-all-intelligences.yml", cls: "workflow" },
+          { depth: 0, icon: "📁", name: "dry-run-log/", cls: "dir" },
+          { depth: 1, icon: "📄", name: "README.md", cls: "muted" },
+          { depth: 0, icon: "📁", name: "public-fabric/", cls: "dir" },
+          { depth: 1, icon: "📄", name: "index.html", cls: "muted" },
+          { depth: 0, icon: "📁", name: "scripts/", cls: "dir" },
+          { depth: 1, icon: "📄", name: "disable-all-intelligences.sh", cls: "script" },
+          { depth: 1, icon: "📄", name: "kill-all-intelligences.sh", cls: "script" },
+          { depth: 0, icon: "🚨", name: "DELETE-TO-ACTIVATE.md", cls: "trigger" },
+          { depth: 0, icon: "🚨", name: "DELETE-TO-DISABLE-ALL-INTELLIGENCES.md", cls: "trigger" },
+          { depth: 0, icon: "🚨", name: "DELETE-TO-KILL-ALL-INTELLIGENCES.md", cls: "trigger" },
+          { depth: 0, icon: "📄", name: "README.md", cls: "muted" },
+        ];
+
+        var container = document.getElementById("file-tree");
+        var lines = tree.map(function (entry) {
+          var indent = "\u00A0\u00A0\u00A0\u00A0".repeat(entry.depth);
+          return indent +
+            entry.icon +
+            " <span class=\"" + entry.cls + "\">" + entry.name + "</span>";
+        });
+        container.innerHTML = lines.join("<br>");
+      })();
+    </script>
+  </body>
+</html>
