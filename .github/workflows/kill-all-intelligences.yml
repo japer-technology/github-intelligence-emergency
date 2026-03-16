@@ -1,0 +1,72 @@
+# Kill All Intelligences – Emergency Workflow
+#
+# Triggered when DELETE-TO-KILL-ALL-INTELLIGENCES.md is deleted.
+# Deletes all .github/workflows/*.yml files AND every
+# .github-*-intelligence folder in each org repo.
+#
+# Fail-safe: while DELETE-TO-ACTIVATE.md exists only a dry-run receipt
+# is written to run-test-log/.
+
+name: 🆘 Kill All Intelligences
+
+on:
+  push:
+    paths:
+      - 'DELETE-TO-KILL-ALL-INTELLIGENCES.md'
+
+permissions:
+  contents: write
+
+jobs:
+  kill:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Verify trigger file was deleted
+        id: verify
+        run: |
+          if git diff --name-only --diff-filter=D HEAD~1 HEAD | grep -q '^DELETE-TO-KILL-ALL-INTELLIGENCES\.md$'; then
+            echo "deleted=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deleted=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::DELETE-TO-KILL-ALL-INTELLIGENCES.md was not deleted – skipping."
+          fi
+
+      - name: Determine dry-run mode
+        if: steps.verify.outputs.deleted == 'true'
+        id: mode
+        run: |
+          if [ -f "DELETE-TO-ACTIVATE.md" ]; then
+            echo "dry_run=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::Fail-safe active – DELETE-TO-ACTIVATE.md still exists. Running in DRY-RUN mode."
+          else
+            echo "dry_run=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Fail-safe removed – executing LIVE kill of all intelligences."
+          fi
+
+      - name: Run kill script
+        if: steps.verify.outputs.deleted == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.INTELLIGENCE_EMERGENCY_TOKEN || secrets.GITHUB_TOKEN }}
+          DRY_RUN: ${{ steps.mode.outputs.dry_run }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          chmod +x scripts/kill-all-intelligences.sh
+          bash scripts/kill-all-intelligences.sh
+
+      - name: Commit dry-run receipt
+        if: steps.verify.outputs.deleted == 'true' && steps.mode.outputs.dry_run == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add run-test-log/ || true
+          if git diff --cached --quiet; then
+            echo "No receipt to commit."
+          else
+            git commit -m "🆘 Dry-run receipt: kill all intelligences"
+            git push
+          fi
