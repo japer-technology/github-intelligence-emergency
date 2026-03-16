@@ -5,7 +5,7 @@
 # .github-*-intelligence folder in each org repo.
 #
 # Fail-safe: while DELETE-TO-ACTIVATE.md exists only a dry-run receipt
-# is written to run-test-log/.
+# is written to dry-run-log/.
 
 name: 🆘 Kill All Intelligences
 
@@ -63,7 +63,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add run-test-log/ || true
+          git add dry-run-log/ || true
           if git diff --cached --quiet; then
             echo "No receipt to commit."
           else
