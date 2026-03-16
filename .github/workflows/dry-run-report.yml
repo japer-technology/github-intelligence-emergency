@@ -1,0 +1,52 @@
+# Dry-Run Report – Manual-Only Workflow
+#
+# Can ONLY be triggered manually via workflow_dispatch.
+# Always forces DRY_RUN=true – this workflow will never perform live
+# operations regardless of whether DELETE-TO-ACTIVATE.md exists.
+#
+# Produces a log file in run-test-log/ describing what would have
+# happened if the selected operation were executed live.
+
+name: 🔍 Dry-Run Report
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: 'Operation to simulate'
+        required: true
+        type: choice
+        options:
+          - disable-all-intelligences
+          - kill-all-intelligences
+
+permissions:
+  contents: write
+
+jobs:
+  dry-run-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run dry-run simulation
+        env:
+          GITHUB_TOKEN: ${{ secrets.INTELLIGENCE_EMERGENCY_TOKEN || secrets.GITHUB_TOKEN }}
+          DRY_RUN: "true"
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          chmod +x scripts/${{ inputs.operation }}.sh
+          bash scripts/${{ inputs.operation }}.sh
+
+      - name: Commit dry-run report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add run-test-log/ || true
+          if git diff --cached --quiet; then
+            echo "No report to commit."
+          else
+            git commit -m "🔍 Dry-run report: ${{ inputs.operation }}"
+            git push
+          fi
