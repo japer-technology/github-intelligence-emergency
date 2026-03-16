@@ -51,7 +51,7 @@ jobs:
       - name: Run kill script
         if: steps.verify.outputs.deleted == 'true'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.INTELLIGENCE_EMERGENCY_TOKEN || secrets.GITHUB_TOKEN }}
           DRY_RUN: ${{ steps.mode.outputs.dry_run }}
           OWNER: ${{ github.repository_owner }}
         run: |

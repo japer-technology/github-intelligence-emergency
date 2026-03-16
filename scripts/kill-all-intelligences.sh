@@ -95,13 +95,11 @@ kill_repo_workflows() {
   }
 
   local files
-  files=$(echo "${workflows}" | jq -r '.[] | select(.type=="file" and (.name | test("\\.(yml|yaml)$"))) | .name + " " + .sha')
+  files=$(echo "${workflows}" | jq -r '.[] | select(.type=="file" and (.name | test("\\.(yml|yaml)$"))) | .name + "\t" + .sha')
   [ -z "${files}" ] && { log "    No workflow files found"; return 0; }
 
-  while IFS= read -r entry; do
-    local file sha
-    file=$(echo "${entry}" | awk '{print $1}')
-    sha=$(echo "${entry}" | awk '{print $2}')
+  while IFS=$'\t' read -r file sha; do
+    [ -z "${file}" ] && continue
     local file_path=".github/workflows/${file}"
 
     if [ "${DRY_RUN}" = "true" ]; then

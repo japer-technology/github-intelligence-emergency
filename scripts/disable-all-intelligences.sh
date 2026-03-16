@@ -69,7 +69,8 @@ disable_repo_workflows() {
   files=$(echo "${workflows}" | jq -r '.[] | select(.type=="file" and (.name | test("\\.(yml|yaml)$"))) | .name')
   [ -z "${files}" ] && { log "  No workflow files found – skipping"; return 0; }
 
-  for file in ${files}; do
+  while IFS= read -r file; do
+    [ -z "${file}" ] && continue
     local src_path=".github/workflows/${file}"
     local dst_path=".github/workflows-DISABLED/${file}"
 
@@ -110,7 +111,7 @@ disable_repo_workflows() {
     }
 
     log "  ✓ ${file} disabled"
-  done
+  done <<< "${files}"
 }
 
 # ── Main ─────────────────────────────────────────────────────────────
