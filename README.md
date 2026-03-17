@@ -10,6 +10,8 @@
   </picture>
 </p>
 
+> The 007 to ensure agent compliance
+
 ## 🔴 Instructions
 
 0. Create a repository secret named `INTELLIGENCE_EMERGENCY_TOKEN` containing a Personal Access Token (PAT) with `repo` scope across the organisation. This is required for cross-repository operations.
