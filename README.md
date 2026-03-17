@@ -1,8 +1,8 @@
 # 🆘 github-intelligence-emergency
 
-## Providing account-wide intelligence repo emergency control
+## Organisation-wide emergency control for intelligence repositories
 
-#### Searches for `.github-*-intelligence` folders across all repositories and provides last-line-of-defence workflow modification and deletion for total agent control.
+#### Finds `.github-*-intelligence` folders across all repositories and enables last-resort workflow updates or removal to retain full control of deployed agents.
 
 <p align="center">
   <picture>
