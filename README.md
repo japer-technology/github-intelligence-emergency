@@ -4,7 +4,7 @@
 
 Searches for `.github-*-intelligence` folders across all repositories and provides last-line-of-defence workflow modification and deletion for total agent control.
 
-## Instructions
+## 🔴 Instructions
 
 0. Create a repository secret named `INTELLIGENCE_EMERGENCY_TOKEN` containing a Personal Access Token (PAT) with `repo` scope across the organisation. This is required for cross-repository operations.
 
@@ -14,7 +14,7 @@ Searches for `.github-*-intelligence` folders across all repositories and provid
 
 ---
 
-## Protocols
+## 🔴 Protocols
 
 ### 🔒 Disable All Intelligences
 
