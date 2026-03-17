@@ -2,7 +2,13 @@
 
 ## Providing account-wide intelligence repo emergency control
 
-Searches for `.github-*-intelligence` folders across all repositories and provides last-line-of-defence workflow modification and deletion for total agent control.
+#### Searches for `.github-*-intelligence` folders across all repositories and provides last-line-of-defence workflow modification and deletion for total agent control.
+
+<p align="center">
+  <picture>
+    <img src="https://raw.githubusercontent.com/japer-technology/github-intelligence-emergency/main/LOGO.png" alt="GitHub Intelligence Emergency" width="500">
+  </picture>
+</p>
 
 ## 🔴 Instructions
 
