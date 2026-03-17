@@ -1,0 +1,463 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  ZeroClaw Intelligence — Agent Workflow (Version 1.0.0)                      ║
+# ║                                                                              ║
+# ║  A standalone AI agent that lives inside your GitHub repository, powered     ║
+# ║  by ZeroClaw — the fastest, smallest AI assistant (100% Rust, <5MB RAM).     ║
+# ║  ZeroClaw responds to `#`.                                                   ║
+# ║                                                                              ║
+# ║  QUICK START — copy this file into your repo and you're 4 steps away:        ║
+# ║                                                                              ║
+# ║    1. Copy this file → .github/workflows/ in your repository.                ║
+# ║    2. Add an LLM API key as a repository secret                              ║
+# ║       (Settings → Secrets and variables → Actions).                          ║
+# ║       At minimum, add ONE of:                                                ║
+# ║         • OPENAI_API_KEY          (OpenAI — default provider)                ║
+# ║         • ANTHROPIC_API_KEY       (Anthropic Claude)                         ║
+# ║         • GEMINI_API_KEY          (Google Gemini)                            ║
+# ║         • XAI_API_KEY             (xAI Grok)                                 ║
+# ║         • OPENROUTER_API_KEY      (OpenRouter / DeepSeek)                    ║
+# ║         • MISTRAL_API_KEY         (Mistral)                                  ║
+# ║         • GROQ_API_KEY            (Groq)                                     ║
+# ║    3. Run the workflow manually:                                             ║
+# ║       Actions → github-zeroclaw-intelligence-agent → Run workflow.           ║
+# ║       This installs the agent folder into your repo (or upgrades it).        ║
+# ║    4. Open an issue starting with `#` — the agent reads your message         ║
+# ║       and replies!                                                           ║
+# ║                                                                              ║
+# ║  WHAT THIS WORKFLOW CONTAINS (three jobs):                                   ║
+# ║    run-install   — Self-installer and upgrader (workflow_dispatch only).     ║
+# ║    run-agent     — AI agent that responds to issues and comments on `#`.     ║
+# ║    run-gitpages  — Publishes the agent's public-fabric to GitHub Pages.      ║
+# ║                                                                              ║
+# ║  Docs: https://github.com/japer-technology/github-zeroclaw-intelligence      ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+name: github-zeroclaw-intelligence-agent
+
+# ──────────────────────────────────────────────────────────────────────────────
+# TRIGGERS
+# ──────────────────────────────────────────────────────────────────────────────
+on:
+  # 1. A new issue is opened → the agent reads it if the title starts with `#`.
+  issues:
+    types: [opened]
+
+  # 2. A comment is added → the agent responds if the comment body starts with `#`.
+  issue_comment:
+    types: [created]
+
+  # 3. Code is pushed to main → triggers a GitHub Pages deployment so the
+  #    agent's public-fabric site stays up to date.
+  push:
+    branches: ["main"]
+    paths-ignore:
+      - ".github/workflows/**"
+
+  # 4. Manual "Run workflow" button → installs the agent folder into your
+  #    repository, or upgrades it when a newer version is available.
+  workflow_dispatch:
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PERMISSIONS
+# ──────────────────────────────────────────────────────────────────────────────
+permissions:
+  contents: write
+  issues: write
+  actions: write
+  pages: write
+  id-token: write
+
+# ══════════════════════════════════════════════════════════════════════════════
+# JOBS
+# ══════════════════════════════════════════════════════════════════════════════
+jobs:
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # JOB 1 — run-install
+  #
+  # Purpose : Self-installer and upgrader. Creates the
+  #           `.github-zeroclaw-intelligence/` folder and its contents.
+  # Trigger : workflow_dispatch (manual "Run workflow" button only).
+  # ────────────────────────────────────────────────────────────────────────────
+  run-install:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      && github.repository != 'japer-technology/github-zeroclaw-intelligence'
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Check for .github-zeroclaw-intelligence
+        id: check-folder
+        run: |
+          if [ ! -d ".github-zeroclaw-intelligence" ]; then
+            echo "action=install" >> "$GITHUB_OUTPUT"
+            echo "📦 .github-zeroclaw-intelligence not found — will install."
+          else
+            LOCAL_VERSION="0.0.0"
+            if [ -f ".github-zeroclaw-intelligence/VERSION" ]; then
+              LOCAL_VERSION=$(tr -d '[:space:]' < .github-zeroclaw-intelligence/VERSION)
+            fi
+
+            REMOTE_VERSION=$(curl -fsSL "https://raw.githubusercontent.com/japer-technology/github-zeroclaw-intelligence/main/.github-zeroclaw-intelligence/VERSION" | tr -d '[:space:]' || true)
+
+            if [ -z "$REMOTE_VERSION" ]; then
+              echo "::warning::Could not fetch remote VERSION — skipping upgrade check."
+              echo "action=skip" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            echo "Local VERSION:  $LOCAL_VERSION"
+            echo "Remote VERSION: $REMOTE_VERSION"
+
+            SEMVER_RE='^[0-9]+\.[0-9]+\.[0-9]+$'
+            if ! [[ "$LOCAL_VERSION" =~ $SEMVER_RE ]] || ! [[ "$REMOTE_VERSION" =~ $SEMVER_RE ]]; then
+              echo "::warning::VERSION format is not valid semver — skipping upgrade check."
+              echo "action=skip" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            IFS='.' read -r L_MAJOR L_MINOR L_PATCH <<< "$LOCAL_VERSION"
+            IFS='.' read -r R_MAJOR R_MINOR R_PATCH <<< "$REMOTE_VERSION"
+
+            NEEDS_UPGRADE=false
+            if [ "$R_MAJOR" -gt "$L_MAJOR" ]; then
+              NEEDS_UPGRADE=true
+            elif [ "$R_MAJOR" -eq "$L_MAJOR" ] && [ "$R_MINOR" -gt "$L_MINOR" ]; then
+              NEEDS_UPGRADE=true
+            elif [ "$R_MAJOR" -eq "$L_MAJOR" ] && [ "$R_MINOR" -eq "$L_MINOR" ] && [ "$R_PATCH" -gt "$L_PATCH" ]; then
+              NEEDS_UPGRADE=true
+            fi
+
+            if [ "$NEEDS_UPGRADE" = true ]; then
+              echo "action=upgrade" >> "$GITHUB_OUTPUT"
+              echo "⬆️  Upgrade available: $LOCAL_VERSION → $REMOTE_VERSION"
+            else
+              echo "action=skip" >> "$GITHUB_OUTPUT"
+              echo "✅ Local version ($LOCAL_VERSION) >= remote version ($REMOTE_VERSION) — nothing to do."
+            fi
+          fi
+
+      - name: Download and install from template
+        if: steps.check-folder.outputs.action != 'skip'
+        run: |
+          set -euo pipefail
+
+          ACTION="${{ steps.check-folder.outputs.action }}"
+          TARGET=".github-zeroclaw-intelligence"
+
+          curl -fsSL "https://github.com/japer-technology/github-zeroclaw-intelligence/archive/refs/heads/main.zip" \
+            -o /tmp/template.zip
+          unzip -q /tmp/template.zip -d /tmp/template
+
+          EXTRACTED=$(ls -d /tmp/template/github-zeroclaw-intelligence-*)
+
+          rm -rf "$EXTRACTED/$TARGET/node_modules"
+          rm -rf "$EXTRACTED/$TARGET/docs/analysis"
+          rm -rf "$EXTRACTED/$TARGET/public-fabric"
+
+          if [ "$ACTION" = "upgrade" ]; then
+            BACKUP="/tmp/zci-backup"
+            mkdir -p "$BACKUP"
+            [ -f "$TARGET/AGENTS.md" ] && cp "$TARGET/AGENTS.md" "$BACKUP/AGENTS.md"
+            [ -d "$TARGET/.pi" ]       && cp -R "$TARGET/.pi" "$BACKUP/.pi"
+            [ -d "$TARGET/state" ]     && cp -R "$TARGET/state" "$BACKUP/state"
+            [ -d "$TARGET/config" ]    && cp -R "$TARGET/config" "$BACKUP/config"
+
+            rm -rf "$TARGET"
+            cp -R "$EXTRACTED/$TARGET" "$TARGET"
+
+            rm -rf "$TARGET/state"
+
+            [ -f "$BACKUP/AGENTS.md" ] && cp "$BACKUP/AGENTS.md" "$TARGET/AGENTS.md"
+            [ -d "$BACKUP/.pi" ]       && cp -R "$BACKUP/.pi" "$TARGET/.pi"
+            [ -d "$BACKUP/state" ]     && cp -R "$BACKUP/state" "$TARGET/state"
+            [ -d "$BACKUP/config" ]    && cp -R "$BACKUP/config" "$TARGET/config"
+          else
+            cp -R "$EXTRACTED/$TARGET" "$TARGET"
+
+            rm -rf "$TARGET/state"
+
+            cp "$TARGET/install/ZEROCLAW-AGENTS.md" "$TARGET/AGENTS.md"
+            mkdir -p "$TARGET/.pi"
+            cp "$TARGET/install/settings.json" "$TARGET/.pi/settings.json"
+          fi
+
+      - name: Ensure .gitignore entries
+        if: steps.check-folder.outputs.action != 'skip'
+        run: |
+          touch .gitignore
+          for entry in "node_modules/" ".github-zeroclaw-intelligence/node_modules/" ".DS_Store"; do
+            grep -qxF "$entry" .gitignore || echo "$entry" >> .gitignore
+          done
+
+      - name: Ensure .gitattributes entries
+        if: steps.check-folder.outputs.action != 'skip'
+        run: |
+          touch .gitattributes
+          for entry in "memory.log merge=union"; do
+            grep -qxF "$entry" .gitattributes || echo "$entry" >> .gitattributes
+          done
+
+      - name: Commit and push
+        if: steps.check-folder.outputs.action != 'skip'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add .github-zeroclaw-intelligence/ .gitignore .gitattributes
+
+          ACTION="${{ steps.check-folder.outputs.action }}"
+          VERSION="unknown"
+          if [ -f ".github-zeroclaw-intelligence/VERSION" ]; then
+            VERSION=$(tr -d '[:space:]' < .github-zeroclaw-intelligence/VERSION)
+          fi
+          if [ "$ACTION" = "upgrade" ]; then
+            COMMIT_MSG="chore: upgrade .github-zeroclaw-intelligence to v${VERSION}"
+          else
+            COMMIT_MSG="chore: install .github-zeroclaw-intelligence v${VERSION}"
+          fi
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "$COMMIT_MSG"
+            git push
+          fi
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # JOB 2 — run-agent
+  #
+  # Purpose : The core AI agent. Reads the issue (or comment), processes it
+  #           through the ZeroClaw runtime, and posts the response.
+  # Trigger : issues.opened (title starts with `#`) OR
+  #           issue_comment.created (body starts with `#`, ignoring bots).
+  # Security: Only collaborators with write/maintain/admin access can trigger.
+  # ────────────────────────────────────────────────────────────────────────────
+  run-agent:
+    runs-on: ubuntu-latest
+
+    # Concurrency: one agent run per issue at a time.
+    concurrency:
+      group: github-zeroclaw-intelligence-${{ github.repository }}-issue-${{ github.event.issue.number }}
+      cancel-in-progress: false
+
+    # Trigger guard:
+    #   • Run on new issues whose title starts with `#`.
+    #   • Run on issue comments whose body starts with `#`, but skip bot comments.
+    if: >-
+      github.repository != 'japer-technology/github-zeroclaw-intelligence'
+      && (
+        (github.event_name == 'issues' && startsWith(github.event.issue.title, '#'))
+        || (github.event_name == 'issue_comment'
+            && !endsWith(github.event.comment.user.login, '[bot]')
+            && startsWith(github.event.comment.body, '#'))
+      )
+    steps:
+
+      # 1. AUTHORIZATION — verify the actor has write-level (or higher) access.
+      - name: Authorize
+        id: authorize
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PERM=$(gh api "repos/${{ github.repository }}/collaborators/${{ github.actor }}/permission" --jq '.permission' 2>/dev/null || echo "none")
+          echo "Actor: ${{ github.actor }}, Permission: $PERM"
+
+          if [[ "$PERM" != "admin" && "$PERM" != "maintain" && "$PERM" != "write" ]]; then
+            echo "::error::Unauthorized: ${{ github.actor }} has '$PERM' permission"
+            exit 1
+          fi
+
+          if [[ "${{ github.event_name }}" == "issue_comment" ]]; then
+            REACTION_ID=$(gh api "repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions" -f content=rocket --jq '.id' 2>/dev/null || echo "")
+            if [[ -n "$REACTION_ID" ]]; then RID_JSON="\"$REACTION_ID\""; else RID_JSON="null"; fi
+            echo '{"reactionId":'"$RID_JSON"',"reactionTarget":"comment","commentId":${{ github.event.comment.id }},"issueNumber":${{ github.event.issue.number }},"repo":"${{ github.repository }}"}' > /tmp/reaction-state.json
+          else
+            REACTION_ID=$(gh api "repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/reactions" -f content=rocket --jq '.id' 2>/dev/null || echo "")
+            if [[ -n "$REACTION_ID" ]]; then RID_JSON="\"$REACTION_ID\""; else RID_JSON="null"; fi
+            echo '{"reactionId":'"$RID_JSON"',"reactionTarget":"issue","commentId":null,"issueNumber":${{ github.event.issue.number }},"repo":"${{ github.repository }}"}' > /tmp/reaction-state.json
+          fi
+
+      # 2. REJECTION FEEDBACK
+      - name: Reject
+        if: ${{ failure() && steps.authorize.outcome == 'failure' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ "${{ github.event_name }}" == "issue_comment" ]]; then
+            gh api "repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions" -f content=-1
+          else
+            gh api "repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/reactions" -f content=-1
+          fi
+
+      # 3. CHECKOUT
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      # 4. SAFETY CHECK
+      - name: Check for .github-zeroclaw-intelligence
+        id: check-folder
+        run: |
+          if [ -d ".github-zeroclaw-intelligence" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::.github-zeroclaw-intelligence folder not found, skipping."
+          fi
+
+      # 5. INSTALL ZEROCLAW — download the ZeroClaw binary from GitHub releases.
+      #    ZeroClaw is a Rust binary; we download the pre-built release for Linux x86_64.
+      - name: Install ZeroClaw
+        if: steps.check-folder.outputs.exists == 'true'
+        run: |
+          echo "🦀 Installing ZeroClaw..."
+
+          # Try to download the latest release binary from GitHub
+          RELEASE_URL=$(curl -fsSL "https://api.github.com/repos/zeroclaw-labs/zeroclaw/releases/latest" \
+            | jq -r '.assets[] | select(.name | test("linux.*x86_64|x86_64.*linux")) | .browser_download_url' \
+            | head -1 || true)
+
+          if [ -n "$RELEASE_URL" ] && [ "$RELEASE_URL" != "null" ]; then
+            echo "📦 Downloading ZeroClaw from release: $RELEASE_URL"
+            curl -fsSL "$RELEASE_URL" -o /tmp/zeroclaw
+            chmod +x /tmp/zeroclaw
+            sudo mv /tmp/zeroclaw /usr/local/bin/zeroclaw
+          else
+            echo "📦 No pre-built binary found, installing from crates.io..."
+            # Install Rust toolchain if not already available
+            if ! command -v cargo &> /dev/null; then
+              curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+              source "$HOME/.cargo/env"
+            fi
+            cargo install zeroclawlabs
+          fi
+
+          echo "✅ ZeroClaw installed: $(zeroclaw --version 2>/dev/null || echo 'version check skipped')"
+
+      # 6. RUNTIME — setup Bun for the TypeScript agent orchestrator.
+      - name: Setup Bun
+        if: steps.check-folder.outputs.exists == 'true'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.2"
+
+      # 7. CACHE
+      - name: Cache dependencies
+        if: steps.check-folder.outputs.exists == 'true'
+        uses: actions/cache@v5
+        with:
+          path: .github-zeroclaw-intelligence/node_modules
+          key: zci-deps-${{ hashFiles('.github-zeroclaw-intelligence/bun.lock') }}
+
+      # 8. INSTALL NODE DEPENDENCIES
+      - name: Install dependencies
+        if: steps.check-folder.outputs.exists == 'true'
+        run: |
+          cd .github-zeroclaw-intelligence
+          if [ -f bun.lock ]; then
+            bun install --frozen-lockfile
+          else
+            bun install
+          fi
+
+      # 9. BUILD (placeholder — Bun runs TypeScript natively)
+      - name: Build
+        if: steps.check-folder.outputs.exists == 'true'
+        run: |
+          cd .github-zeroclaw-intelligence
+          if jq -e '.scripts.build' package.json > /dev/null 2>&1; then
+            bun run build
+          else
+            echo "No build script found -- Bun runs TypeScript natively, no build needed."
+          fi
+
+      # 10. RUN THE AGENT
+      - name: Run
+        if: steps.check-folder.outputs.exists == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun .github-zeroclaw-intelligence/lifecycle/agent.ts
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # JOB 3 — run-gitpages
+  #
+  # Purpose : Publish the agent's public-fabric directory as a GitHub Pages site.
+  # Trigger : all events (after run-agent / run-install finish, if applicable).
+  # ────────────────────────────────────────────────────────────────────────────
+  run-gitpages:
+    needs: [run-agent, run-install]
+    if: always() && !cancelled() && github.repository != 'japer-technology/github-zeroclaw-intelligence'
+    runs-on: ubuntu-latest
+
+    concurrency:
+      group: "pages-zeroclaw"
+      cancel-in-progress: false
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Check public-fabric exists
+        id: check-folder
+        run: |
+          if [ -d ".github-zeroclaw-intelligence/public-fabric" ]; then
+            echo "folder_exists=true" >> "$GITHUB_OUTPUT"
+            echo "✅ public-fabric directory found."
+          else
+            echo "folder_exists=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Directory .github-zeroclaw-intelligence/public-fabric not found. Skipping Pages deployment."
+          fi
+
+      - name: Enable Pages
+        if: steps.check-folder.outputs.folder_exists == 'true'
+        id: enable-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh api "repos/${{ github.repository }}/pages" --silent 2>/dev/null; then
+            echo "pages_active=true" >> "$GITHUB_OUTPUT"
+            echo "✅ GitHub Pages is already enabled."
+          elif gh api "repos/${{ github.repository }}/pages" \
+            -X POST -f build_type=workflow --silent 2>/dev/null; then
+            echo "pages_active=true" >> "$GITHUB_OUTPUT"
+            echo "✅ GitHub Pages has been enabled."
+          else
+            echo "pages_active=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Could not enable GitHub Pages automatically. Please enable it manually in repository Settings → Pages → Source → GitHub Actions."
+          fi
+
+      - name: Setup Pages
+        if: steps.check-folder.outputs.folder_exists == 'true' && steps.enable-pages.outputs.pages_active == 'true'
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        if: steps.check-folder.outputs.folder_exists == 'true' && steps.enable-pages.outputs.pages_active == 'true'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: '.github-zeroclaw-intelligence/public-fabric'
+
+      - name: Deploy to GitHub Pages
+        if: steps.check-folder.outputs.folder_exists == 'true' && steps.enable-pages.outputs.pages_active == 'true'
+        id: deployment
+        uses: actions/deploy-pages@v4
