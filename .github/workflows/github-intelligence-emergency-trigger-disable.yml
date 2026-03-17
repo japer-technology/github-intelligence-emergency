@@ -70,3 +70,16 @@ jobs:
             git commit -m "🆘 Dry-run receipt: disable all intelligences"
             git push
           fi
+
+      - name: Commit execution receipt
+        if: steps.verify.outputs.deleted == 'true' && steps.mode.outputs.dry_run == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add EXECUTED-DISABLE-*.log || true
+          if git diff --cached --quiet; then
+            echo "No receipt to commit."
+          else
+            git commit -m "🆘 Execution receipt: disable all intelligences"
+            git push
+          fi

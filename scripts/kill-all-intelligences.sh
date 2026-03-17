@@ -216,7 +216,7 @@ main() {
   log ""
   log "Repos with intelligence folders found: ${found}"
 
-  # Write dry-run receipt
+  # Write receipt
   if [ "${DRY_RUN}" = "true" ]; then
     mkdir -p "${LOG_DIR}"
     local receipt_file="${LOG_DIR}/kill-all-intelligences-$(date -u '+%Y%m%dT%H%M%SZ').log"
@@ -229,6 +229,18 @@ main() {
       echo "${receipt}"
     } > "${receipt_file}"
     log "Dry-run receipt written to ${receipt_file}"
+  else
+    local root_dir="${GITHUB_WORKSPACE:-$(pwd)}"
+    local receipt_file="${root_dir}/EXECUTED-KILL-$(date -u '+%Y%m%dT%H%M%SZ').log"
+    {
+      echo "=== Kill All Intelligences – Executed Receipt ==="
+      echo "Timestamp: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+      echo "Owner: ${OWNER}"
+      echo "Intelligence repos found: ${found}"
+      echo ""
+      echo "${receipt}"
+    } > "${receipt_file}"
+    log "Execution receipt written to ${receipt_file}"
   fi
 
   log "=== Done ==="
