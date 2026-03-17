@@ -236,7 +236,11 @@ jobs:
           echo "  The following files have been placed in .github/workflows-new/"
           echo "  and must be moved to .github/workflows/ manually:"
           echo ""
-          ls .github/workflows-new/ 2>/dev/null | sed 's/^/    • /'
+          if [ -d .github/workflows-new/ ] && [ -n "$(ls -A .github/workflows-new/ 2>/dev/null)" ]; then
+            ls .github/workflows-new/ | sed 's/^/    • /'
+          else
+            echo "    (none found in template)"
+          fi
           echo ""
           echo "════════════════════════════════════════════════════════════════"
 
