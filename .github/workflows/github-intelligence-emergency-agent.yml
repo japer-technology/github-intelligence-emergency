@@ -41,6 +41,8 @@ on:
     branches: ["main"]
     paths-ignore:
       - ".github/workflows/**"
+      - "dry-run-log/**"
+      - "EXECUTED-*.log"
 
   # 2. Manual "Run workflow" button → installs the emergency system into your
   #    repository, or upgrades it when a newer version is available.
