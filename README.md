@@ -6,7 +6,7 @@
 
 <p align="center">
   <picture>
-    <img src="https://raw.githubusercontent.com/japer-technology/github-intelligence-emergency/main/LOGO.png" alt="GitHub Intelligence Emergency" width="500">
+    <img src="https://raw.githubusercontent.com/japer-technology/github-intelligence-emergency/main/THE-LAST-LINE.png" alt="GitHub Intelligence Emergency" width="500">
   </picture>
 </p>
 
