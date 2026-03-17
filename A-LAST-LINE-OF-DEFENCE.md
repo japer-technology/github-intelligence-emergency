@@ -1,4 +1,4 @@
-# 🛡️ The Last Line of Defence
+# 🛡️ A Last Line of Defence
 
 ## How the emergency system prevents accidental execution
 
