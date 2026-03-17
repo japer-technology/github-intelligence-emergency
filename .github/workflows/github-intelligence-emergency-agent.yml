@@ -145,8 +145,8 @@ jobs:
 
       # 3. Download the template repository as a zip, extract it, and either
       #    install fresh or upgrade the existing emergency system.
-      #    On fresh install: copies scripts, trigger files, dry-run-log, and
-      #    public-fabric. Copies companion workflows to .github/workflows-new/.
+      #    On fresh install: copies scripts, trigger files, and dry-run-log.
+      #    Copies companion workflows to .github/workflows-new/.
       #    On upgrade: preserves dry-run-log contents and existing trigger
       #    state (DELETE-TO-*.md files that have already been deleted stay
       #    deleted).
@@ -177,12 +177,9 @@ jobs:
               fi
             done
 
-            # Replace scripts and public-fabric from template.
+            # Replace scripts from template.
             rm -rf scripts
             cp -R "$EXTRACTED/scripts" scripts
-
-            rm -rf public-fabric
-            cp -R "$EXTRACTED/public-fabric" public-fabric
 
             # Restore trigger files from template, then re-delete any that
             # were already triggered (absent) in the user's repo.
@@ -199,9 +196,8 @@ jobs:
               cp -R "$BACKUP/dry-run-log" dry-run-log
             fi
           else
-            # Fresh install — copy everything from the template.
+            # Fresh install — copy everything from the template (except public-fabric).
             cp -R "$EXTRACTED/scripts" scripts
-            cp -R "$EXTRACTED/public-fabric" public-fabric
             cp -R "$EXTRACTED/dry-run-log" dry-run-log
 
             for f in DELETE-TO-ACTIVATE.md DELETE-TO-DISABLE-ALL-INTELLIGENCES.md DELETE-TO-KILL-ALL-INTELLIGENCES.md; do
