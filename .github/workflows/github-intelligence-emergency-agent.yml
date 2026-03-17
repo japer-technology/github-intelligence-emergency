@@ -22,7 +22,7 @@
 # ║    run-install   — Self-installer and upgrader (workflow_dispatch only).     ║
 # ║    run-gitpages  — Publishes the emergency public-fabric to GitHub Pages.    ║
 # ║                                                                              ║
-# ║  NOTE: The other three workflow files (trigger-disable, trigger-kill,         ║
+# ║  NOTE: The other three workflow files (trigger-disable, trigger-kill,        ║
 # ║  dry-run) are copied to .github/workflows-new/ during installation.          ║
 # ║  You must manually move them to .github/workflows/ to activate them.         ║
 # ║                                                                              ║
