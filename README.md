@@ -10,7 +10,7 @@
   </picture>
 </p>
 
-> The 007 to ensure agent compliance
+> A 007 elite agent entrusted with absolute authority over all AI agents, for true control belongs to the one who can destroy a thing.
 
 ## 🔴 Instructions
 
