@@ -571,7 +571,7 @@
           </div>
           <div class="stat-card">
             <dt>Workflows</dt>
-            <dd>3</dd>
+            <dd>5</dd>
           </div>
           <div class="stat-card">
             <dt>Scripts</dt>
@@ -746,6 +746,78 @@
           </div>
         </section>
 
+        <!-- ─── Defence layers ─────────────────────────────────── -->
+        <section class="panel" id="safety">
+          <div class="section-heading">
+            <h2>Defence layers</h2>
+            <p>Five independent layers that must all be deliberately bypassed before any live operation takes place.</p>
+          </div>
+
+          <div class="workflow-grid">
+            <article class="workflow-card">
+              <h3>Layer 1 — Fail-safe file</h3>
+              <p>
+                While <code>DELETE-TO-ACTIVATE.md</code> exists, <strong>all operations run in dry-run mode</strong>.
+                Both workflows and scripts enforce this. Dry-run receipts are committed to
+                <code>dry-run-log/</code> for auditing. Scripts default <code>DRY_RUN</code> to
+                <code>true</code> if the environment variable is unset.
+              </p>
+              <div class="workflow-meta">
+                <span class="badge badge-safe">Forces dry-run</span>
+              </div>
+            </article>
+
+            <article class="workflow-card">
+              <h3>Layer 2 — Trigger files</h3>
+              <p>
+                Each protocol requires deleting its own <code>DELETE-TO-*.md</code> file.
+                Workflows verify deletion via <code>git diff --diff-filter=D</code> — renaming,
+                editing, or merely touching the file will not activate the protocol.
+              </p>
+              <div class="workflow-meta">
+                <span class="badge badge-info">Verified deletion</span>
+              </div>
+            </article>
+
+            <article class="workflow-card">
+              <h3>Layer 3 — Token scope</h3>
+              <p>
+                A PAT with <code>repo</code> scope must be stored as
+                <code>INTELLIGENCE_EMERGENCY_TOKEN</code>. Without it the scripts cannot
+                enumerate repositories or read, move, or delete files in other repos.
+                The emergency workflows fail harmlessly.
+              </p>
+              <div class="workflow-meta">
+                <span class="badge badge-info">repo scope required</span>
+              </div>
+            </article>
+
+            <article class="workflow-card">
+              <h3>Layer 4 — Manual workflow placement</h3>
+              <p>
+                The agent installs companion workflows into <code>.github/workflows-new/</code>
+                — not the active <code>.github/workflows/</code> directory. Trigger workflows
+                cannot become active without deliberate manual action by a human.
+              </p>
+              <div class="workflow-meta">
+                <span class="badge badge-info">Manual placement</span>
+              </div>
+            </article>
+
+            <article class="workflow-card">
+              <h3>Layer 5 — Dry-run workflow</h3>
+              <p>
+                The <code>🔍 Dry-Run</code> workflow (<code>workflow_dispatch</code> only) lets
+                you preview either protocol at any time without deleting any files. It always
+                forces <code>DRY_RUN=true</code> regardless of whether the fail-safe exists.
+              </p>
+              <div class="workflow-meta">
+                <span class="badge badge-safe">Always dry-run</span>
+              </div>
+            </article>
+          </div>
+        </section>
+
         <!-- ─── How to use ─────────────────────────────────────── -->
         <section class="panel" id="instructions">
           <div class="section-heading">
@@ -797,7 +869,7 @@
               <h3>🆘 Disable All Intelligences</h3>
               <p>
                 Triggered on push when
-                <code>DELETE-TO-DISABLE-ALL-INTELLIGENCES.md</code> is modified.
+                <code>DELETE-TO-DISABLE-ALL-INTELLIGENCES.md</code> is deleted.
                 Verifies the file was actually deleted, checks the fail-safe, then runs
                 <code>scripts/disable-all-intelligences.sh</code>.
               </p>
@@ -811,7 +883,7 @@
               <h3>🆘 Kill All Intelligences</h3>
               <p>
                 Triggered on push when
-                <code>DELETE-TO-KILL-ALL-INTELLIGENCES.md</code> is modified.
+                <code>DELETE-TO-KILL-ALL-INTELLIGENCES.md</code> is deleted.
                 Verifies the file was actually deleted, checks the fail-safe, then runs
                 <code>scripts/kill-all-intelligences.sh</code>.
               </p>
@@ -831,6 +903,35 @@
               <div class="workflow-meta">
                 <span class="badge badge-info">workflow_dispatch</span>
                 <span class="badge badge-safe">always dry-run</span>
+              </div>
+            </article>
+
+            <article class="workflow-card">
+              <h3>🤖 Agent</h3>
+              <p>
+                Self-installer and upgrader. On <code>workflow_dispatch</code>, checks
+                the <code>VERSION</code> file against the latest release and installs or
+                upgrades the emergency system — scripts, trigger files, and companion
+                workflows — into <code>.github/workflows-new/</code>. Also publishes the
+                public-fabric site on every push to <code>main</code>.
+              </p>
+              <div class="workflow-meta">
+                <span class="badge badge-info">push + workflow_dispatch</span>
+                <span class="badge badge-info">contents: write</span>
+              </div>
+            </article>
+
+            <article class="workflow-card">
+              <h3>🌐 Publish Public Fabric</h3>
+              <p>
+                Deploys <code>public-fabric/</code> to GitHub Pages whenever its
+                contents change on <code>main</code>. Runs independently of the agent
+                workflow so page updates are published immediately without a full
+                installation run.
+              </p>
+              <div class="workflow-meta">
+                <span class="badge badge-info">push trigger</span>
+                <span class="badge badge-info">pages: write</span>
               </div>
             </article>
           </div>
@@ -909,9 +1010,11 @@
         var tree = [
           { depth: 0, icon: "📁", name: ".github/", cls: "dir" },
           { depth: 1, icon: "📁", name: "workflows/", cls: "dir" },
-          { depth: 2, icon: "📄", name: "github-intelligence-emergency-trigger-disable.yml", cls: "workflow" },
+          { depth: 2, icon: "📄", name: "github-intelligence-emergency-agent.yml", cls: "workflow" },
           { depth: 2, icon: "📄", name: "github-intelligence-emergency-dry-run.yml", cls: "workflow" },
+          { depth: 2, icon: "📄", name: "github-intelligence-emergency-trigger-disable.yml", cls: "workflow" },
           { depth: 2, icon: "📄", name: "github-intelligence-emergency-trigger-kill.yml", cls: "workflow" },
+          { depth: 2, icon: "📄", name: "publish-public-fabric.yml", cls: "workflow" },
           { depth: 0, icon: "📁", name: "dry-run-log/", cls: "dir" },
           { depth: 1, icon: "📄", name: "README.md", cls: "muted" },
           { depth: 0, icon: "📁", name: "public-fabric/", cls: "dir" },
@@ -919,10 +1022,13 @@
           { depth: 0, icon: "📁", name: "scripts/", cls: "dir" },
           { depth: 1, icon: "📄", name: "disable-all-intelligences.sh", cls: "script" },
           { depth: 1, icon: "📄", name: "kill-all-intelligences.sh", cls: "script" },
+          { depth: 0, icon: "📄", name: "A-LAST-LINE-OF-DEFENCE.md", cls: "muted" },
           { depth: 0, icon: "🚨", name: "DELETE-TO-ACTIVATE.md", cls: "trigger" },
           { depth: 0, icon: "🚨", name: "DELETE-TO-DISABLE-ALL-INTELLIGENCES.md", cls: "trigger" },
           { depth: 0, icon: "🚨", name: "DELETE-TO-KILL-ALL-INTELLIGENCES.md", cls: "trigger" },
           { depth: 0, icon: "📄", name: "README.md", cls: "muted" },
+          { depth: 0, icon: "🖼️", name: "THE-LAST-LINE.png", cls: "muted" },
+          { depth: 0, icon: "📄", name: "VERSION", cls: "muted" },
         ];
 
         var container = document.getElementById("file-tree");
