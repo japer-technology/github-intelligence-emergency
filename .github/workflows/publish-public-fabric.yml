@@ -1,0 +1,66 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  Publish public-fabric to GitHub Pages                                       ║
+# ║                                                                              ║
+# ║  Deploys the public-fabric/ directory as a GitHub Pages site whenever        ║
+# ║  its contents change on main.                                                ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+name: publish-public-fabric
+
+# ──────────────────────────────────────────────────────────────────────────────
+# TRIGGERS
+# ──────────────────────────────────────────────────────────────────────────────
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "public-fabric/**"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PERMISSIONS
+# ──────────────────────────────────────────────────────────────────────────────
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# ──────────────────────────────────────────────────────────────────────────────
+# CONCURRENCY — prevent overlapping deployments
+# ──────────────────────────────────────────────────────────────────────────────
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+# ══════════════════════════════════════════════════════════════════════════════
+# JOBS
+# ══════════════════════════════════════════════════════════════════════════════
+jobs:
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # JOB — deploy
+  #
+  # Purpose : Upload public-fabric/ and publish it to GitHub Pages.
+  # Trigger : Push to main that touches any file inside public-fabric/.
+  # ────────────────────────────────────────────────────────────────────────────
+  deploy:
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: 'public-fabric'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
